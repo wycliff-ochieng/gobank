@@ -34,13 +34,22 @@ func (p *Postgrestore) Init() error {
 }
 
 func (p *Postgrestore) CreateAccountTable() error {
-	query := ""
+	query := `CREATE TABLE IF NOT EXISTS accounts(
+	id SERIAL PRIMARY KEY,
+	firstname VARCHAR(10),
+	lastname VARCHAR(10),
+	balance SERIAL,
+	createdat TIMESTAMP)`
+
 	_, err := p.db.Exec(query)
 	return err
 }
 
-func (p *Postgrestore) CreateAccount(*Account) error {
-	return nil
+func (p *Postgrestore) CreateAccount(acc *Account) error {
+	query := p.db.Query(
+		`INSERT INTO accounts(id,firstname,lastname,balance,createdat) VALUES(&1,&2,&3,&4,&5)`
+	)
+	resp,err:= p.db.Exec(query, acc.Firstname,acc.Lastname,acc.Balance,acc.Createdat)
 }
 
 func (p *Postgrestore) GetAccount(int) error {
