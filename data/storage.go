@@ -2,6 +2,7 @@ package data
 
 import (
 	"database/sql"
+	"errors"
 )
 
 type Storage interface {
@@ -16,7 +17,7 @@ type Postgrestore struct {
 }
 
 func NewPostgrestore() (*Postgrestore, error) {
-	connStr := "user=postgres,dname=postgres,password=gobank,sslmode=disable"
+	connStr := "user=postgres dname=postgres password=gobank sslmode=disable"
 	db, err := sql.Open("postgres", connStr)
 	if err != nil {
 		return nil, err
@@ -46,10 +47,14 @@ func (p *Postgrestore) CreateAccountTable() error {
 }
 
 func (p *Postgrestore) CreateAccount(acc *Account) error {
-	query := p.db.Query(
-		`INSERT INTO accounts(id,firstname,lastname,balance,createdat) VALUES(&1,&2,&3,&4,&5)`
+	_, err := p.db.Exec(
+		`INSERT INTO accounts(firstname, lastname, balance, createdat) VALUES($1, $2, $3, $4)`,
+		acc.Firstname, acc.Lastname, acc.Balance, acc.CreatedAt,
 	)
-	resp,err:= p.db.Exec(query, acc.Firstname,acc.Lastname,acc.Balance,acc.Createdat)
+	if err != nil {
+		return errors.New("cannot insert into table: " + err.Error())
+	}
+	return nil
 }
 
 func (p *Postgrestore) GetAccount(int) error {
