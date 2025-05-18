@@ -10,7 +10,8 @@ import (
 )
 
 type APIServer struct {
-	Addr string
+	Addr    string
+	Storage data.Storage
 }
 
 // function signature of function we are using
@@ -31,14 +32,22 @@ func MakeHttpHandlerFunc(f apiFunc) http.HandlerFunc {
 
 // serialize the input
 func WriteJSON(w http.ResponseWriter, status int, v any) error {
-	w.WriteHeader(http.StatusOK)
+	w.WriteHeader(status)
 	w.Header().Set("Content-Type", "application/json")
 	return json.NewEncoder(w).Encode(v)
 }
 
 func NewAPIServer(addr string) *APIServer {
+	store, err := data.NewPostgrestore()
+	if err != nil {
+		panic(err)
+	}
+	if err := store.Init(); err != nil {
+		panic(err)
+	}
 	return &APIServer{
-		Addr: addr,
+		Addr:    addr,
+		Storage: store,
 	}
 }
 
@@ -53,12 +62,36 @@ func (s *APIServer) handleAccount(w http.ResponseWriter, r *http.Request) error 
 	if r.Method == "GET" {
 		return s.handleGetAccount(w, r)
 	}
+	if r.Method == "POST" {
+		return s.handleCreateAccount(w, r)
+	}
 	return fmt.Errorf("method not allowed")
 }
 
 func (s *APIServer) handleGetAccount(w http.ResponseWriter, r *http.Request) error {
 	account := data.NewAccount("Jessy", "Elikanah")
 	return WriteJSON(w, http.StatusOK, account)
+}
+
+func (s *APIServer) handleCreateAccount(w http.ResponseWriter, r *http.Request) error {
+	var req struct {
+		Firstname string
+		Lastname  string
+		Balance   int
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		return fmt.Errorf("Couldnt unmarshal: %v", err)
+	}
+
+	account := data.NewAccount(req.Firstname, req.Lastname)
+	account.Balance = req.Balance
+	if err := s.Storage.CreateAccount(account); err != nil {
+		return fmt.Errorf("Couldnt create account : %v", err)
+	}
+
+	return WriteJSON(w, http.StatusCreated, account)
+
 }
 
 func (s *APIServer) handleDeleteAccount(w http.ResponseWriter, r *http.Request) error {
