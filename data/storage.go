@@ -17,7 +17,7 @@ type Postgrestore struct {
 }
 
 func NewPostgrestore() (*Postgrestore, error) {
-	connStr := "user=postgres dname=postgres password=gobank sslmode=disable"
+	connStr := "user=postgres dbname=postgres password=gobank sslmode=disable"
 	db, err := sql.Open("postgres", connStr)
 	if err != nil {
 		return nil, err
@@ -46,10 +46,22 @@ func (p *Postgrestore) CreateAccountTable() error {
 	return err
 }
 
-func (p *Postgrestore) CreateAccount(acc *Account) error {
+func (p *Postgrestore) CreateTransactionTable() error {
+	query := `CREATE TABLE IF NOT EXISTs transactions(
+	id SERIAL PRIMARY KEY,
+	amount_id INT, 
+	amount INT,
+	type VARCHAR(10),
+	transactionTime TIMESTAMP DEFAULT CURRENT TIMESTAMP)`
+
+	_, err := p.db.Exec(query)
+	return err
+}
+
+func (p *Postgrestore) CreateAccount(account *Account) error {
 	_, err := p.db.Exec(
 		`INSERT INTO accounts(firstname, lastname, balance, createdat) VALUES($1, $2, $3, $4)`,
-		acc.Firstname, acc.Lastname, acc.Balance, acc.CreatedAt,
+		account.Firstname, account.Lastname, account.Balance, account.CreatedAt,
 	)
 	if err != nil {
 		return errors.New("cannot insert into table: " + err.Error())
@@ -57,8 +69,14 @@ func (p *Postgrestore) CreateAccount(acc *Account) error {
 	return nil
 }
 
-func (p *Postgrestore) GetAccount(int) error {
-	return nil
+func (p *Postgrestore) GetAccount(int) (*Account, error) {
+	acc := &Account{}
+	query := `SELECT id,firstname,lastname,balance,createdat`
+	err := p.db.QueryRow(query).Scan(&acc.ID, &acc.Firstname, &acc.Lastname, &acc.Balance, &acc.CreatedAt)
+	if err != nil {
+		return nil, err
+	}
+	return acc, nil
 }
 
 func (p *Postgrestore) DeleteAccount(*Account) error {
