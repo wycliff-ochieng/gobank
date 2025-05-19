@@ -10,8 +10,8 @@ import (
 )
 
 type APIServer struct {
-	Addr    string
-	Storage data.Storage
+	Addr  string
+	Store data.Storage
 }
 
 // function signature of function we are using
@@ -37,17 +37,17 @@ func WriteJSON(w http.ResponseWriter, status int, v any) error {
 	return json.NewEncoder(w).Encode(v)
 }
 
-func NewAPIServer(addr string) *APIServer {
-	store, err := data.NewPostgrestore()
-	if err != nil {
-		panic(err)
-	}
-	if err := store.Init(); err != nil {
-		panic(err)
-	}
+func NewAPIServer(addr string, store data.Storage) *APIServer {
+	//	store, err := data.NewPostgrestore()
+	//	if err != nil {
+	//		panic(err)
+	//	}
+	//	if err := store.Init(); err != nil {
+	//		panic(err)
+	//	}
 	return &APIServer{
-		Addr:    addr,
-		Storage: store,
+		Addr:  addr,
+		Store: store,
 	}
 }
 
@@ -69,28 +69,44 @@ func (s *APIServer) handleAccount(w http.ResponseWriter, r *http.Request) error 
 }
 
 func (s *APIServer) handleGetAccount(w http.ResponseWriter, r *http.Request) error {
-	account := data.NewAccount("Jessy", "Elikanah")
-	return WriteJSON(w, http.StatusOK, account)
+	vars := mux.Vars(r)["id"]
+
+	fmt.Println(vars)
+
+	return WriteJSON(w, http.StatusOK, vars)
 }
 
 func (s *APIServer) handleCreateAccount(w http.ResponseWriter, r *http.Request) error {
-	var req struct {
-		Firstname string
-		Lastname  string
-		Balance   int
+
+	createaccountrequest := new(data.CreateAccountReq)
+
+	if err := json.NewDecoder(r.Body).Decode(createaccountrequest); err != nil {
+		return err
 	}
 
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		return fmt.Errorf("Couldnt unmarshal: %v", err)
-	}
+	account := data.NewAccount(createaccountrequest.Firstname, createaccountrequest.Lastname)
 
-	account := data.NewAccount(req.Firstname, req.Lastname)
-	account.Balance = req.Balance
-	if err := s.Storage.CreateAccount(account); err != nil {
-		return fmt.Errorf("Couldnt create account : %v", err)
+	if err := s.Store.CreateAccount(account); err != nil {
+		return err
 	}
 
 	return WriteJSON(w, http.StatusCreated, account)
+
+	//var req struct {
+	//	Firstname string
+	//	Lastname  string
+	//	Balance   int
+	//}
+	//
+	//	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+	//		return fmt.Errorf("Couldnt unmarshal: %v", err)
+	//	}
+	//
+	//	account := data.NewAccount(req.Firstname, req.Lastname)
+	//	account.Balance = req.Balance
+	//	if err := s.Store.CreateAccount(account); err != nil {
+	//		return fmt.Errorf("Couldnt create account : %v", err)
+	//	//}
 
 }
 
