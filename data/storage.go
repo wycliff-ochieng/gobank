@@ -3,6 +3,8 @@ package data
 import (
 	"database/sql"
 	"errors"
+
+	_ "github.com/lib/pq"
 )
 
 type Storage interface {
@@ -69,14 +71,14 @@ func (p *Postgrestore) CreateAccount(account *Account) error {
 	return nil
 }
 
-func (p *Postgrestore) GetAccount(int) (*Account, error) {
+func (p *Postgrestore) GetAccount(int) error {
 	acc := &Account{}
 	query := `SELECT id,firstname,lastname,balance,createdat`
 	err := p.db.QueryRow(query).Scan(&acc.ID, &acc.Firstname, &acc.Lastname, &acc.Balance, &acc.CreatedAt)
 	if err != nil {
-		return nil, err
+		return err
 	}
-	return acc, nil
+	return nil
 }
 
 func (p *Postgrestore) DeleteAccount(*Account) error {
