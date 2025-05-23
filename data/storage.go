@@ -9,9 +9,10 @@ import (
 
 type Storage interface {
 	CreateAccount(*Account) error
-	GetAccount(int) error
+	GetAccountByID(int) error
 	DeleteAccount(*Account) error
 	UpdateAccount(int) error
+	GetAccounts() ([]*Account, error)
 }
 
 type Postgrestore struct {
@@ -71,14 +72,25 @@ func (p *Postgrestore) CreateAccount(account *Account) error {
 	return nil
 }
 
-func (p *Postgrestore) GetAccount(int) error {
-	acc := &Account{}
-	query := `SELECT id,firstname,lastname,balance,createdat`
-	err := p.db.QueryRow(query).Scan(&acc.ID, &acc.Firstname, &acc.Lastname, &acc.Balance, &acc.CreatedAt)
-	if err != nil {
-		return err
+/*
+	func (p *Postgrestore) GetAccounts() ([]*Account, error) {
+		acc := &Account{}
+		query := `SELECT id,firstname,lastname,balance,createdat`
+		err := p.db.QueryRow(query).Scan(&acc.ID, &acc.Firstname, &acc.Lastname, &acc.Balance, &acc.CreatedAt)
+		if err != nil {
+			return nil, err
+		}
+		return nil, err
 	}
-	return nil
+*/
+func (p *Postgrestore) ScanIntoAccount(rows *sql.Rows) (*Account, error) {
+	acc := new(Account)
+	err := rows.Scan(&acc.ID, &acc.Firstname, &acc.Lastname, &acc.Balance, &acc.CreatedAt)
+
+	if err != nil {
+		return nil, err
+	}
+	return acc, err
 }
 
 func (p *Postgrestore) DeleteAccount(*Account) error {
@@ -87,4 +99,32 @@ func (p *Postgrestore) DeleteAccount(*Account) error {
 
 func (p *Postgrestore) UpdateAccount(int) error {
 	return nil
+}
+
+func (p *Postgrestore) GetAccountByID(id int) error {
+	return nil
+}
+
+func (p *Postgrestore) GetAccounts() ([]*Account, error) {
+	rows, err := p.db.Query("SELECT * FROM accounts ")
+	if err != nil {
+		return nil, err
+	}
+
+	accounts := []*Account{}
+
+	for rows.Next() {
+		account := new(Account)
+		if err := rows.Scan(
+			&account.ID,
+			&account.Firstname,
+			&account.Lastname,
+			&account.Balance,
+			&account.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		accounts = append(accounts, account)
+	}
+	return accounts, err
 }
