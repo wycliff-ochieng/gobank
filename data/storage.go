@@ -3,13 +3,14 @@ package data
 import (
 	"database/sql"
 	"errors"
+	"fmt"
 
 	_ "github.com/lib/pq"
 )
 
 type Storage interface {
 	CreateAccount(*Account) error
-	GetAccountByID(int) error
+	GetAccountByID(int) (*Account, error)
 	DeleteAccount(*Account) error
 	UpdateAccount(int) error
 	GetAccounts() ([]*Account, error)
@@ -83,6 +84,7 @@ func (p *Postgrestore) CreateAccount(account *Account) error {
 		return nil, err
 	}
 */
+
 func (p *Postgrestore) ScanIntoAccount(rows *sql.Rows) (*Account, error) {
 	acc := new(Account)
 	err := rows.Scan(&acc.ID, &acc.Firstname, &acc.Lastname, &acc.Balance, &acc.CreatedAt)
@@ -93,19 +95,8 @@ func (p *Postgrestore) ScanIntoAccount(rows *sql.Rows) (*Account, error) {
 	return acc, err
 }
 
-func (p *Postgrestore) DeleteAccount(*Account) error {
-	return nil
-}
-
-func (p *Postgrestore) UpdateAccount(int) error {
-	return nil
-}
-
-func (p *Postgrestore) GetAccountByID(id int) error {
-	return nil
-}
-
 func (p *Postgrestore) GetAccounts() ([]*Account, error) {
+
 	rows, err := p.db.Query("SELECT * FROM accounts ")
 	if err != nil {
 		return nil, err
@@ -114,17 +105,51 @@ func (p *Postgrestore) GetAccounts() ([]*Account, error) {
 	accounts := []*Account{}
 
 	for rows.Next() {
-		account := new(Account)
-		if err := rows.Scan(
-			&account.ID,
-			&account.Firstname,
-			&account.Lastname,
-			&account.Balance,
-			&account.CreatedAt,
-		); err != nil {
+
+		account, err := p.ScanIntoAccount(rows)
+		if err != nil {
 			return nil, err
 		}
 		accounts = append(accounts, account)
+
 	}
 	return accounts, err
+
+	// account := new(Account)
+	// if err := rows.Scan(
+	//
+	//	&account.ID,
+	//	&account.Firstname,
+	//	&account.Lastname,
+	//	&account.Balance,
+	//	&account.CreatedAt,
+	//
+	//	); err != nil {
+	//		return nil, err
+	//	}
+	//
+	// accounts = append(accounts, account)
+}
+
+func (p *Postgrestore) GetAccountByID(id int) (*Account, error) {
+
+	rows, err := p.db.Query("SELECT * FROM accounts WHERE id = $1", id)
+
+	if err != nil {
+		return nil, err
+	}
+
+	for rows.Next() {
+		return p.ScanIntoAccount(rows)
+	}
+
+	return nil, fmt.Errorf("could not find id")
+}
+
+func (p *Postgrestore) DeleteAccount(*Account) error {
+	return nil
+}
+
+func (p *Postgrestore) UpdateAccount(int) error {
+	return nil
 }
