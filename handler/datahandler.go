@@ -54,7 +54,9 @@ func NewAPIServer(addr string, store data.Storage) *APIServer {
 // handlefunc takes a path, http handler
 func (s *APIServer) Run() {
 	router := mux.NewRouter()
-	router.HandleFunc("/", MakeHttpHandlerFunc(s.handleAccount))
+	router.HandleFunc("/account", MakeHttpHandlerFunc(s.handleAccount))
+	//router.HandleFunc("/",MakeHttpHandlerFunc(s.handleGetAccount))
+	router.HandleFunc("/account/{id}", MakeHttpHandlerFunc(s.handleGetAccountByID))
 	http.ListenAndServe(s.Addr, router)
 }
 
@@ -69,6 +71,15 @@ func (s *APIServer) handleAccount(w http.ResponseWriter, r *http.Request) error 
 }
 
 func (s *APIServer) handleGetAccount(w http.ResponseWriter, r *http.Request) error {
+	accounts, err := s.Store.GetAccounts()
+	if err != nil {
+		return err
+	}
+
+	return WriteJSON(w, http.StatusOK, accounts)
+}
+
+func (s *APIServer) handleGetAccountByID(w http.ResponseWriter, r *http.Request) error {
 	vars := mux.Vars(r)["id"]
 
 	fmt.Println(vars)
