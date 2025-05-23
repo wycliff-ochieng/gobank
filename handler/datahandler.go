@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strconv"
 
 	"github.com/gorilla/mux"
 	"github.com/wycliff-ochieng/data"
@@ -82,9 +83,17 @@ func (s *APIServer) handleGetAccount(w http.ResponseWriter, r *http.Request) err
 func (s *APIServer) handleGetAccountByID(w http.ResponseWriter, r *http.Request) error {
 	vars := mux.Vars(r)["id"]
 
-	fmt.Println(vars)
+	id, err := strconv.Atoi(vars)
+	if err != nil {
+		return err
+	}
 
-	return WriteJSON(w, http.StatusOK, vars)
+	account, err := s.Store.GetAccountByID(id)
+	if err != nil {
+		return err
+	}
+
+	return WriteJSON(w, http.StatusOK, account)
 }
 
 func (s *APIServer) handleCreateAccount(w http.ResponseWriter, r *http.Request) error {
@@ -102,22 +111,6 @@ func (s *APIServer) handleCreateAccount(w http.ResponseWriter, r *http.Request) 
 	}
 
 	return WriteJSON(w, http.StatusCreated, account)
-
-	//var req struct {
-	//	Firstname string
-	//	Lastname  string
-	//	Balance   int
-	//}
-	//
-	//	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-	//		return fmt.Errorf("Couldnt unmarshal: %v", err)
-	//	}
-	//
-	//	account := data.NewAccount(req.Firstname, req.Lastname)
-	//	account.Balance = req.Balance
-	//	if err := s.Store.CreateAccount(account); err != nil {
-	//		return fmt.Errorf("Couldnt create account : %v", err)
-	//	//}
 
 }
 
