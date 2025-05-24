@@ -11,7 +11,7 @@ import (
 type Storage interface {
 	CreateAccount(*Account) error
 	GetAccountByID(int) (*Account, error)
-	DeleteAccount(*Account) error
+	DeleteAccount(int) error
 	UpdateAccount(int) error
 	GetAccounts() ([]*Account, error)
 }
@@ -146,8 +146,10 @@ func (p *Postgrestore) GetAccountByID(id int) (*Account, error) {
 	return nil, fmt.Errorf("could not find id")
 }
 
-func (p *Postgrestore) DeleteAccount(*Account) error {
-	return nil
+func (p *Postgrestore) DeleteAccount(id int) error {
+
+	_, err := p.db.Query("delete from accounts where id = $1", id)
+	return err
 }
 
 func (p *Postgrestore) UpdateAccount(int) error {
