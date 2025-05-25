@@ -10,12 +10,23 @@ type CreateAccountReq struct {
 	Lastname  string
 }
 
+type TransferReq struct {
+	Ammount int `json:"ammount"`
+}
+
 type Account struct {
 	ID        int
 	Firstname string
 	Lastname  string
 	Balance   int
 	CreatedAt time.Time
+}
+
+type Transaction struct {
+	ID              int
+	AccountID       int
+	Type            string //deposit / withdrawal
+	Transactiontime string
 }
 
 func NewAccount(firstname string, lastname string) *Account {
