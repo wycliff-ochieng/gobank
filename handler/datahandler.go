@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/golang-jwt/jwt/v5"
 	"github.com/gorilla/mux"
 	"github.com/wycliff-ochieng/data"
 )
@@ -57,7 +58,7 @@ func (s *APIServer) Run() {
 	router := mux.NewRouter()
 	router.HandleFunc("/account", MakeHttpHandlerFunc(s.handleAccount))
 	//router.HandleFunc("/",MakeHttpHandlerFunc(s.handleGetAccount))
-	router.HandleFunc("/account/{id}", MakeHttpHandlerFunc(s.handleGetAccountByID))
+	router.HandleFunc("/account/{id}", withJWTAuth(MakeHttpHandlerFunc(s.handleGetAccountByID)))
 	http.ListenAndServe(s.Addr, router)
 }
 
@@ -155,4 +156,31 @@ func getID(r *http.Request) (int, error) {
 		return id, fmt.Errorf("invalid id given")
 	}
 	return id, nil
+}
+
+//JWT handling and fixing
+
+func withJWTAuth(handlerFunc http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		fmt.Println("Calling jwt function")
+
+		tokenString := r.Header.Get("x-jwt-token")
+		_, err := validateJWT(tokenString)
+		if err != nil {
+			WriteJSON(w, http.StatusForbidden, APIError{Error: "invalid token"})
+			return
+		}
+		handlerFunc(w, r)
+	}
+}
+
+func validateJWT(tokenString string) (*jwt.Token, error) {
+	secret := "mystupidsecret"
+
+	return jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
+		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
+		}
+		return []byte(secret), nil
+	})
 }
