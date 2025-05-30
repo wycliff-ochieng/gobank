@@ -130,6 +130,13 @@ func (s *APIServer) handleCreateAccount(w http.ResponseWriter, r *http.Request) 
 		return err
 	}
 
+	tokenString, err := CreateJWT(account)
+	if err != nil {
+		return err
+	}
+
+	fmt.Println("JWT token", tokenString)
+
 	return WriteJSON(w, http.StatusCreated, account)
 
 }
@@ -183,4 +190,14 @@ func validateJWT(tokenString string) (*jwt.Token, error) {
 		}
 		return []byte(secret), nil
 	})
+}
+
+func CreateJWT(account *data.Account) (string, error) {
+	claims := jwt.MapClaims{
+		"expiresAt":     150000,
+		"accountNumber": account.ID,
+	}
+	secret := "mystupidsecret"
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	return token.SignedString([]byte(secret))
 }
